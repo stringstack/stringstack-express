@@ -65,18 +65,21 @@ let generateShutdownCheck = function ( keepAlive, secure, done ) {
 
   let app = null;
 
-  let checkFirstResult = {
+  // the first check is evaluated in-line, no need to track it, thus we only have second and third checks out here
+
+  let checkSecond = {
+    onComplete: null,
+    results: []
+  };
+
+  let checkThirdResult = {
     onComplete: null,
     response: null,
     body: null,
     err: null
   };
 
-  let checkSecondResult = {
-    response: null,
-    body: null,
-    err: null
-  };
+  let callCount = 50; // how many first and second checks to run
 
   async.series( [
     ( done ) => {
@@ -121,45 +124,83 @@ let generateShutdownCheck = function ( keepAlive, secure, done ) {
     },
     ( done ) => {
 
-      let check = echoTestCheck( {
-        port: secure ? SetupTestConfigComponent.defaultConfig.https.port : SetupTestConfigComponent.defaultConfig.http.port,
-        secure: secure,
-        agentOptions: { keepAlive: keepAlive },
-        headers: {
-          delay: 250
-        }
-      } );
+      // run these before we start the shutdown and let them complete.
+      // for keep-alive requests these should idle TCP connections
+      async.times( callCount, ( n, done ) => {
 
-      check( ( err, response, body ) => {
+        echoTestCheck( {
+          port: secure ? SetupTestConfigComponent.defaultConfig.https.port : SetupTestConfigComponent.defaultConfig.http.port,
+          secure: secure,
+          agentOptions: { keepAlive: keepAlive },
+          headers: {
+            delay: 0
+          }
+        } )( ( err ) => {
 
-        // console.log( 'check 1 err', err );
-        // console.log( 'check 1 response', !!response );
-        // console.log( 'check 1 body', !!body );
+          if ( err ) {
+            return done( err );
+          }
 
-        checkFirstResult.err = err;
-        checkFirstResult.response = response;
-        checkFirstResult.body = body;
+          done();
 
-        if ( typeof checkFirstResult.complete === 'function' ) {
-          let temp = checkFirstResult.complete;
-          checkFirstResult.complete = null;
-          temp();
-        } else {
-          checkFirstResult.complete = true;
-        }
+        } );
 
-      } );
+      }, done );
 
-      setTimeout( done, 10 ); // give the request time to start
+    },
+    ( done ) => {
+
+      // run these before we start the shutdown and let them complete.
+      // for any kind of requests these should active TCP connections
+      async.times(
+        callCount,
+        ( n, done ) => {
+
+          echoTestCheck( {
+            port: secure ? SetupTestConfigComponent.defaultConfig.https.port : SetupTestConfigComponent.defaultConfig.http.port,
+            secure: secure,
+            agentOptions: { keepAlive: keepAlive },
+            headers: {
+              delay: 250
+            }
+          } )( ( err, response, body ) => {
+
+            // will check all this later
+            checkSecond.results.push( {
+              response: response,
+              body: body,
+              err: err
+            } );
+
+            done();
+
+          } );
+
+        },
+        () => {
+
+          if ( typeof checkSecond.onComplete === 'function' ) {
+            let temp = checkSecond.onComplete;
+            checkSecond.onComplete = null;
+            temp();
+          } else {
+            checkSecond.onComplete = true;
+          }
+
+        } );
+
+      setTimeout( done, 100 ); // give the request time to start, then move on to dinit
 
     },
     ( done ) => {
       try {
         app.dinit( done );
 
+        // push to next execution block in JS process, allowing dinit() io to apply
         setImmediate( () => {
 
-          // this check should fail, because it is issues after server shutdown
+          // this check should fail, because it is issues after server shutdown, however the active calls in progress
+          // should still return even though this one is blocked
           let check = echoTestCheck( {
             port: secure ? SetupTestConfigComponent.defaultConfig.https.port : SetupTestConfigComponent.defaultConfig.http.port,
             secure: secure,
@@ -171,13 +212,18 @@ let generateShutdownCheck = function ( keepAlive, secure, done ) {
 
           check( ( err, response, body ) => {
 
-            // console.log( 'check 2 err', err );
-            // console.log( 'check 2 response', !!response );
-            // console.log( 'check 2 body', !!body );
+            // will check these later
+            checkThirdResult.err = err;
+            checkThirdResult.response = response;
+            checkThirdResult.body = body;
 
-            checkSecondResult.err = err;
-            checkSecondResult.response = response;
-            checkSecondResult.body = body;
+            if ( typeof checkThirdResult.onComplete === 'function' ) {
+              let temp = checkThirdResult.onComplete;
+              checkThirdResult.onComplete = null;
+              temp();
+            } else {
+              checkThirdResult.onComplete = true;
+            }
 
           } );
 
@@ -189,37 +235,58 @@ let generateShutdownCheck = function ( keepAlive, secure, done ) {
     },
     ( done ) => {
 
-      if ( checkFirstResult.complete ) {
-        done();
-      } else {
-        checkFirstResult.complete = done;
-      }
+      async.parallel( [
+        ( done ) => {
+
+          if ( checkSecond.onComplete ) {
+
+            // in-progress calls have ended, move on now
+            done();
+          } else {
+
+            // in-progress calls have not ended, fire the done callback as soon as they finish
+            checkSecond.onComplete = done;
+          }
+
+        },
+        ( done ) => {
+          if ( checkThirdResult.onComplete ) {
+
+            // in-progress calls have ended, move on now
+            done();
+          } else {
+
+            // in-progress calls have not ended, fire the done callback as soon as they finish
+            checkThirdResult.onComplete = done;
+          }
+        }
+      ], done );
 
     },
     ( done ) => {
 
-      // dinit should not fire callback until the request is complete
-
-      // console.log( 'checkFirstResult.err', checkFirstResult.err );
-      // console.log( 'checkFirstResult.response', !!checkFirstResult.response );
-      // console.log( 'checkFirstResult.body', !!checkFirstResult.body );
-      // console.log( 'checkSecondResult.err', checkSecondResult.err );
-      // console.log( 'checkSecondResult.response', !!checkSecondResult.response );
-      // console.log( 'checkSecondResult.body', !!checkSecondResult.body );
-
+      //  app has finished dinit, and all second and third
       try {
 
-        assert.ifError( checkFirstResult.err, 'should be no error on check request' );
-        assert( !!checkFirstResult.response, 'First response should exist' );
-        assert( !!checkFirstResult.body, 'First body should exist' );
+        // check the results of all the requests that were in-progress when dinit fired
+        checkSecond.results.forEach( ( result ) => {
 
-        if ( !checkSecondResult.err ||
-             typeof checkSecondResult.err.message !== 'string' ||
-             !checkSecondResult.err.message.match( /ECONNREFUSED/ ) ) {
-          assert.fail( 'second check should fail since it is started after server dinit is called: ' + checkSecondResult.err.message );
+          // console.log( 'result.body 2', result.body );
+
+          assert.ifError( result.err, 'should be no error on check request' );
+          assert( !!result.response, 'First response should exist' );
+          assert( !!result.body, 'First body should exist' );
+
+        } );
+
+        // check the result of the request that was made slightly after dinit fired
+        if ( !checkThirdResult.err ||
+             typeof checkThirdResult.err.message !== 'string' ||
+             !checkThirdResult.err.message.match( /ECONNREFUSED/ ) ) {
+          assert.fail( 'second check should fail since it is started after server dinit is called: ' + checkThirdResult.err.message );
         }
-        assert( !checkSecondResult.response, 'Second response should be false' );
-        assert( !checkSecondResult.body, 'Second body should be false' );
+        assert( !checkThirdResult.response, 'Second response should be false' );
+        assert( !checkThirdResult.body, 'Second body should be false' );
 
       } catch ( e ) {
         return done( e );
@@ -440,8 +507,8 @@ describe( 'general', function () {
     it( 'on shutdown, should stop new connections and wait for HTTP keep-alive connections to close before exiting',
       function ( done ) {
 
-        // we test waiting for slow responses
-        this.timeout( 200000 );
+        // shutdown should be fast
+        this.timeout( 1000 );
 
         generateShutdownCheck( true, false, done );
 
@@ -450,8 +517,8 @@ describe( 'general', function () {
     it( 'on shutdown, should stop new connections and wait for HTTP non-keep-alive connections to close before exiting',
       function ( done ) {
 
-        // we test waiting for slow responses
-        this.timeout( 200000 );
+        // shutdown should be fast
+        this.timeout( 1000 );
 
         generateShutdownCheck( false, false, done );
 
@@ -460,8 +527,8 @@ describe( 'general', function () {
     it( 'on shutdown, should stop new connections and wait for HTTPS keep-alive connections to close before exiting',
       function ( done ) {
 
-        // we test waiting for slow responses
-        this.timeout( 200000 );
+        // shutdown should be fast
+        this.timeout( 1000 );
 
         generateShutdownCheck( true, true, done );
 
@@ -470,8 +537,8 @@ describe( 'general', function () {
     it( 'on shutdown, should stop new connections and wait for HTTPS non-keep-alive connections to close before exiting',
       function ( done ) {
 
-        // we test waiting for slow responses
-        this.timeout( 200000 );
+        // shutdown should be fast
+        this.timeout( 1000 );
 
         generateShutdownCheck( false, true, done );
 

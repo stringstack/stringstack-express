@@ -93,8 +93,8 @@ module.exports = SetupComponent;
 # Usage
 
 The StringStack/express component is a minimal wrapper around ExpressJS. The component simply adds the hooks to start 
-and stop the listeners in a sane manner. It also utilizes https://www.npmjs.com/package/http-shutdown to ensure web 
-services start and stop in a predictable manner. See the documentation on http-shutdown for details.
+and stop the listeners in a sane manner. It also utilizes https://www.npmjs.com/package/stoppable to ensure web 
+services start and stop in a predictable manner. See the documentation on stoppable for details.
 
 In order to access ExpressJS and add your custom configuration, you will need to create your own component that 
 configures ExpressJS. Here is an example component that will configure ExpressJS to echo back any request made. 

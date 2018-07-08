@@ -16,10 +16,12 @@ class TestEchoComponent {
 
     let app = express.getApp();
 
-    // echo all requests
-    app.use( ( req, res ) => {
+
+    let handler = ( req, res ) => {
 
       let response = {};
+
+      // console.log( 'req.url', req.url );
 
       response.method = req.method;
       response.url = req.url;
@@ -35,16 +37,14 @@ class TestEchoComponent {
 
       res.json( response );
 
-    } );
+    };
 
-  }
+    // echo all requests
+    app.get( '/echo', handler );
+    app.post( '/echo', handler );
+    app.put( '/echo', handler );
+    app.delete( '/echo', handler );
 
-  init( done ) {
-    done();
-  }
-
-  dinit( done ) {
-    done();
   }
 
 }

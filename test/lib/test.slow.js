@@ -16,8 +16,7 @@ class TestEchoComponent {
 
     let app = express.getApp();
 
-    // echo all requests
-    app.use( ( req, res ) => {
+    let handler = ( req, res ) => {
 
       let response = {};
 
@@ -46,16 +45,14 @@ class TestEchoComponent {
         res.json( response );
       }, delay );
 
-    } );
+    };
 
-  }
+    // echo all requests
+    app.get( '/slow', handler );
+    app.post( '/slow', handler );
+    app.put( '/slow', handler );
+    app.delete( '/slow', handler );
 
-  init( done ) {
-    done();
-  }
-
-  dinit( done ) {
-    done();
   }
 
 }

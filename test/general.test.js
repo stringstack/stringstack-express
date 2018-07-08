@@ -17,6 +17,9 @@ let echoTestCheck = function ( params ) {
   let agentOptions = params.agentOptions || {};
   let headers = params.headers || {};
   let method = params.method || 'GET';
+  let slow = !!params.slow;
+
+  let path = slow ? '/slow' : '/echo';
 
   return function ( done ) {
 
@@ -27,7 +30,12 @@ let echoTestCheck = function ( params ) {
     async.waterfall( [
       ( done ) => {
 
-        let url = 'http' + (secure ? 's' : '') + '://localhost:' + port + '/test';
+
+        let url = 'http' + (secure ? 's' : '') + '://localhost:' + port + path;
+
+        if ( slow && !headers.hasOwnProperty( 'delay' ) ) {
+          headers.delay = 500;
+        }
 
         request( {
           url: url,
@@ -47,13 +55,14 @@ let echoTestCheck = function ( params ) {
           body = JSON.parse( body );
 
           assert.equal( body.method, method );
-          assert.equal( body.url, '/test' );
+          assert.equal( body.url, path );
 
         } catch ( e ) {
           return done( e );
         }
 
         done( null, response, body );
+
       }
     ], done );
 
@@ -102,6 +111,7 @@ let generateShutdownCheck = function ( keepAlive, secure, done ) {
         const App = core.createApp( {
           rootComponents: [
             './test/lib/test.config',
+            './test/lib/test.echo',
             './test/lib/test.slow'
           ]
         } );
@@ -134,7 +144,8 @@ let generateShutdownCheck = function ( keepAlive, secure, done ) {
           agentOptions: { keepAlive: keepAlive },
           headers: {
             delay: 0
-          }
+          },
+          slow: true
         } )( ( err ) => {
 
           if ( err ) {
@@ -162,7 +173,8 @@ let generateShutdownCheck = function ( keepAlive, secure, done ) {
             agentOptions: { keepAlive: keepAlive },
             headers: {
               delay: 250
-            }
+            },
+            slow: true
           } )( ( err, response, body ) => {
 
             // will check all this later
@@ -207,7 +219,8 @@ let generateShutdownCheck = function ( keepAlive, secure, done ) {
             agentOptions: { keepAlive: keepAlive },
             headers: {
               delay: 0
-            }
+            },
+            slow: true
           } );
 
           check( ( err, response, body ) => {
@@ -295,7 +308,17 @@ let generateShutdownCheck = function ( keepAlive, secure, done ) {
       done();
 
     }
-  ], done );
+  ], ( err ) => {
+
+    if ( err ) {
+      app.dinit( () => { // still dinit app, just in case of error
+        done( err );
+      } );
+    } else {
+      done();
+    }
+
+  } );
 
 };
 
@@ -400,7 +423,7 @@ describe( 'general', function () {
             return done( e );
           }
         },
-        echoTestCheck( { port: SetupTestConfigComponent.defaultConfig.http.port, secure: false } )
+        echoTestCheck( { port: SetupTestConfigComponent.defaultConfig.http.port, secure: false, slow: false } )
       ], ( testErr ) => {
 
         try {
@@ -474,7 +497,7 @@ describe( 'general', function () {
             return done( e );
           }
         },
-        echoTestCheck( { port: SetupTestConfigComponent.defaultConfig.https.port, secure: true } )
+        echoTestCheck( { port: SetupTestConfigComponent.defaultConfig.https.port, secure: true, slow: false } )
       ], ( testErr ) => {
 
         try {
@@ -499,6 +522,276 @@ describe( 'general', function () {
 
           done();
         }
+
+      } );
+
+    } );
+
+    it( 'should log web requests', function ( done ) {
+
+      this.timeout( 5000 );
+
+      let app = null;
+
+      SetupTestConfigComponent.defaultConfig = {
+        http: {
+          enabled: true,
+          port: 8080
+        },
+        https: {
+          enabled: false,
+          port: 8443
+        }
+      };
+
+      let logHistory = [];
+
+      async.series( [
+        ( done ) => {
+
+          try {
+
+            let core = new StringStackCore();
+
+            const App = core.createApp( {
+              log: function ( level, path, message, meta ) {
+
+                logHistory.push( {
+                  level: level,
+                  path: path,
+                  message: message,
+                  meta: meta
+                } );
+
+              },
+              rootComponents: [
+                './test/lib/test.config',
+                './test/lib/test.echo',
+                './test/lib/test.slow'
+              ]
+            } );
+
+            app = new App( 'test' );
+
+            done();
+
+          } catch ( e ) {
+            return done( e );
+          }
+
+        },
+        ( done ) => {
+
+          try {
+            app.init( done );
+          } catch ( e ) {
+            done( e );
+          }
+
+        },
+        ( done ) => {
+
+          async.parallel( [
+            echoTestCheck( {
+              port: SetupTestConfigComponent.defaultConfig.http.port,
+              secure: false,
+              slow: true
+            } ),
+            ( done ) => {
+
+              let go = echoTestCheck( {
+                port: SetupTestConfigComponent.defaultConfig.http.port,
+                secure: false,
+                slow: false
+              } );
+
+              // ensure second call always starts second, but starts before first one finishes
+              setTimeout( () => {
+                go( done );
+              }, 100 );
+
+            },
+          ], ( err ) => {
+            done( err );
+          } );
+
+        },
+        ( done ) => {
+
+          try {
+            app.dinit( done );
+          } catch ( e ) {
+            done( e );
+          }
+
+        },
+        ( done ) => {
+
+          try {
+
+            logHistory = logHistory
+              .filter( ( entry ) => {
+                return !!entry.path.match( /stringstack-express\/index$/ );
+              } )
+              .map( ( entry ) => {
+
+                entry.path = 'stringstack-express/index'; // component path
+                delete entry.meta.response.headers.etag;
+
+                return entry;
+
+              } );
+
+            assert.deepStrictEqual( logHistory, [
+              {
+                "level": "debug",
+                "path": "stringstack-express/index",
+                "message": "START [1] http get: localhost: /slow: [\"::ffff:127.0.0.1\"]",
+                "meta": {
+                  "requestId": 1,
+                  "request": {
+                    "protocol": "http",
+                    "hostname": "localhost",
+                    "path": "/slow",
+                    "method": "get",
+                    "secure": false,
+                    "headers": {
+                      "delay": "500",
+                      "host": "localhost:8080",
+                      "connection": "close"
+                    },
+                    "ip": "::ffff:127.0.0.1",
+                    "ips": [],
+                    "query": {},
+                    "cookies": null,
+                    "body": null
+                  },
+                  "response": {
+                    "headers": {
+                      "x-powered-by": "Express",
+                      "content-type": "application/json; charset=utf-8",
+                      "content-length": "240"
+                    },
+                    "statusCode": 200
+                  }
+                }
+              },
+              {
+                "level": "debug",
+                "path": "stringstack-express/index",
+                "message": "START [2] http get: localhost: /echo: [\"::ffff:127.0.0.1\"]",
+                "meta": {
+                  "requestId": 2,
+                  "request": {
+                    "protocol": "http",
+                    "hostname": "localhost",
+                    "path": "/echo",
+                    "method": "get",
+                    "secure": false,
+                    "headers": {
+                      "host": "localhost:8080",
+                      "connection": "close"
+                    },
+                    "ip": "::ffff:127.0.0.1",
+                    "ips": [],
+                    "query": {},
+                    "cookies": null,
+                    "body": null
+                  },
+                  "response": {
+                    "headers": {
+                      "x-powered-by": "Express",
+                      "content-type": "application/json; charset=utf-8",
+                      "content-length": "214"
+                    },
+                    "statusCode": 200
+                  }
+                }
+              },
+              {
+                "level": "debug",
+                "path": "stringstack-express/index",
+                "message": "FINISH [2] http get: localhost: /echo: [\"::ffff:127.0.0.1\"]",
+                "meta": {
+                  "requestId": 2,
+                  "request": {
+                    "protocol": "http",
+                    "hostname": "localhost",
+                    "path": "/echo",
+                    "method": "get",
+                    "secure": false,
+                    "headers": {
+                      "host": "localhost:8080",
+                      "connection": "close"
+                    },
+                    "ip": "::ffff:127.0.0.1",
+                    "ips": [],
+                    "query": {},
+                    "cookies": null,
+                    "body": null
+                  },
+                  "response": {
+                    "headers": {
+                      "x-powered-by": "Express",
+                      "content-type": "application/json; charset=utf-8",
+                      "content-length": "214"
+                    },
+                    "statusCode": 200
+                  }
+                }
+              },
+              {
+                "level": "debug",
+                "path": "stringstack-express/index",
+                "message": "FINISH [1] http get: localhost: /slow: [\"::ffff:127.0.0.1\"]",
+                "meta": {
+                  "requestId": 1,
+                  "request": {
+                    "protocol": "http",
+                    "hostname": "localhost",
+                    "path": "/slow",
+                    "method": "get",
+                    "secure": false,
+                    "headers": {
+                      "delay": "500",
+                      "host": "localhost:8080",
+                      "connection": "close"
+                    },
+                    "ip": "::ffff:127.0.0.1",
+                    "ips": [],
+                    "query": {},
+                    "cookies": null,
+                    "body": null
+                  },
+                  "response": {
+                    "headers": {
+                      "x-powered-by": "Express",
+                      "content-type": "application/json; charset=utf-8",
+                      "content-length": "240"
+                    },
+                    "statusCode": 200
+                  }
+                }
+              }
+            ] );
+
+          } catch ( e ) {
+            return done( e );
+          }
+
+          done();
+
+        }
+      ], ( err ) => {
+
+        if ( err ) {
+          app.dinit( () => {
+            done( err );
+          } );
+        } else {
+          done();
+        }
+
 
       } );
 

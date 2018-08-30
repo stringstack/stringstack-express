@@ -16,12 +16,8 @@ const stoppable = require( './lib/stoppable' );
  * @type {{key: (String), cert: (String)}}
  */
 let testTLS = {
-  key: fs.existsSync( 'certs/test.key' ) ?
-       fs.readFileSync( 'certs/test.key', 'utf8' ) :
-       null,
-  cert: fs.existsSync( 'certs/test.crt' ) ?
-        fs.readFileSync( 'certs/test.crt', 'utf8' ) :
-        null
+  key: fs.existsSync( 'certs/test.key' ) ? fs.readFileSync( 'certs/test.key', 'utf8' ) : null,
+  cert: fs.existsSync( 'certs/test.crt' ) ? fs.readFileSync( 'certs/test.crt', 'utf8' ) : null
 };
 
 let defaultConfig = {

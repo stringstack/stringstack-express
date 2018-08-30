@@ -11,7 +11,7 @@ class TestEchoComponent {
     let express = deps.get( './index' );
 
     if ( !express ) {
-      throw new Error( "can't get express component" );
+      throw new Error( 'can\'t get express component' );
     }
 
     let app = express.getApp();

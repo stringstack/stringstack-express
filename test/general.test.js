@@ -6,10 +6,6 @@ const request = require( 'request' );
 const SetupTestConfigComponent = require( './lib/test.config' );
 const StringStackCore = require( '@stringstack/core' );
 
-let getComponentNative = function ( app, targetPath ) {
-  return app._loader.get( 'app', targetPath );
-};
-
 let echoTestCheck = function ( params ) {
 
   let port = params.port;
@@ -644,132 +640,132 @@ describe( 'general', function () {
 
             assert.deepStrictEqual( logHistory, [
               {
-                "level": "debug",
-                "path": "stringstack-express/index",
-                "message": "START [1] http get: localhost: /slow: [\"::ffff:127.0.0.1\"]",
-                "meta": {
-                  "requestId": 1,
-                  "request": {
-                    "protocol": "http",
-                    "hostname": "localhost",
-                    "path": "/slow",
-                    "method": "get",
-                    "secure": false,
-                    "headers": {
-                      "delay": "500",
-                      "host": "localhost:8080",
-                      "connection": "close"
+                'level': 'debug',
+                'path': 'stringstack-express/index',
+                'message': 'START [1] http get: localhost: /slow: [\'::ffff:127.0.0.1\']',
+                'meta': {
+                  'requestId': 1,
+                  'request': {
+                    'protocol': 'http',
+                    'hostname': 'localhost',
+                    'path': '/slow',
+                    'method': 'get',
+                    'secure': false,
+                    'headers': {
+                      'delay': '500',
+                      'host': 'localhost:8080',
+                      'connection': 'close'
                     },
-                    "ip": "::ffff:127.0.0.1",
-                    "ips": [],
-                    "query": {},
-                    "cookies": null,
-                    "body": null
+                    'ip': '::ffff:127.0.0.1',
+                    'ips': [],
+                    'query': {},
+                    'cookies': null,
+                    'body': null
                   },
-                  "response": {
-                    "headers": {
-                      "x-powered-by": "Express",
-                      "content-type": "application/json; charset=utf-8",
-                      "content-length": "240"
+                  'response': {
+                    'headers': {
+                      'x-powered-by': 'Express',
+                      'content-type': 'application/json; charset=utf-8',
+                      'content-length': '240'
                     },
-                    "statusCode": 200
+                    'statusCode': 200
                   }
                 }
               },
               {
-                "level": "debug",
-                "path": "stringstack-express/index",
-                "message": "START [2] http get: localhost: /echo: [\"::ffff:127.0.0.1\"]",
-                "meta": {
-                  "requestId": 2,
-                  "request": {
-                    "protocol": "http",
-                    "hostname": "localhost",
-                    "path": "/echo",
-                    "method": "get",
-                    "secure": false,
-                    "headers": {
-                      "host": "localhost:8080",
-                      "connection": "close"
+                'level': 'debug',
+                'path': 'stringstack-express/index',
+                'message': 'START [2] http get: localhost: /echo: [\'::ffff:127.0.0.1\']',
+                'meta': {
+                  'requestId': 2,
+                  'request': {
+                    'protocol': 'http',
+                    'hostname': 'localhost',
+                    'path': '/echo',
+                    'method': 'get',
+                    'secure': false,
+                    'headers': {
+                      'host': 'localhost:8080',
+                      'connection': 'close'
                     },
-                    "ip": "::ffff:127.0.0.1",
-                    "ips": [],
-                    "query": {},
-                    "cookies": null,
-                    "body": null
+                    'ip': '::ffff:127.0.0.1',
+                    'ips': [],
+                    'query': {},
+                    'cookies': null,
+                    'body': null
                   },
-                  "response": {
-                    "headers": {
-                      "x-powered-by": "Express",
-                      "content-type": "application/json; charset=utf-8",
-                      "content-length": "214"
+                  'response': {
+                    'headers': {
+                      'x-powered-by': 'Express',
+                      'content-type': 'application/json; charset=utf-8',
+                      'content-length': '214'
                     },
-                    "statusCode": 200
+                    'statusCode': 200
                   }
                 }
               },
               {
-                "level": "debug",
-                "path": "stringstack-express/index",
-                "message": "FINISH [2] http get: localhost: /echo: [\"::ffff:127.0.0.1\"]",
-                "meta": {
-                  "requestId": 2,
-                  "request": {
-                    "protocol": "http",
-                    "hostname": "localhost",
-                    "path": "/echo",
-                    "method": "get",
-                    "secure": false,
-                    "headers": {
-                      "host": "localhost:8080",
-                      "connection": "close"
+                'level': 'debug',
+                'path': 'stringstack-express/index',
+                'message': 'FINISH [2] http get: localhost: /echo: [\'::ffff:127.0.0.1\']',
+                'meta': {
+                  'requestId': 2,
+                  'request': {
+                    'protocol': 'http',
+                    'hostname': 'localhost',
+                    'path': '/echo',
+                    'method': 'get',
+                    'secure': false,
+                    'headers': {
+                      'host': 'localhost:8080',
+                      'connection': 'close'
                     },
-                    "ip": "::ffff:127.0.0.1",
-                    "ips": [],
-                    "query": {},
-                    "cookies": null,
-                    "body": null
+                    'ip': '::ffff:127.0.0.1',
+                    'ips': [],
+                    'query': {},
+                    'cookies': null,
+                    'body': null
                   },
-                  "response": {
-                    "headers": {
-                      "x-powered-by": "Express",
-                      "content-type": "application/json; charset=utf-8",
-                      "content-length": "214"
+                  'response': {
+                    'headers': {
+                      'x-powered-by': 'Express',
+                      'content-type': 'application/json; charset=utf-8',
+                      'content-length': '214'
                     },
-                    "statusCode": 200
+                    'statusCode': 200
                   }
                 }
               },
               {
-                "level": "debug",
-                "path": "stringstack-express/index",
-                "message": "FINISH [1] http get: localhost: /slow: [\"::ffff:127.0.0.1\"]",
-                "meta": {
-                  "requestId": 1,
-                  "request": {
-                    "protocol": "http",
-                    "hostname": "localhost",
-                    "path": "/slow",
-                    "method": "get",
-                    "secure": false,
-                    "headers": {
-                      "delay": "500",
-                      "host": "localhost:8080",
-                      "connection": "close"
+                'level': 'debug',
+                'path': 'stringstack-express/index',
+                'message': 'FINISH [1] http get: localhost: /slow: [\'::ffff:127.0.0.1\']',
+                'meta': {
+                  'requestId': 1,
+                  'request': {
+                    'protocol': 'http',
+                    'hostname': 'localhost',
+                    'path': '/slow',
+                    'method': 'get',
+                    'secure': false,
+                    'headers': {
+                      'delay': '500',
+                      'host': 'localhost:8080',
+                      'connection': 'close'
                     },
-                    "ip": "::ffff:127.0.0.1",
-                    "ips": [],
-                    "query": {},
-                    "cookies": null,
-                    "body": null
+                    'ip': '::ffff:127.0.0.1',
+                    'ips': [],
+                    'query': {},
+                    'cookies': null,
+                    'body': null
                   },
-                  "response": {
-                    "headers": {
-                      "x-powered-by": "Express",
-                      "content-type": "application/json; charset=utf-8",
-                      "content-length": "240"
+                  'response': {
+                    'headers': {
+                      'x-powered-by': 'Express',
+                      'content-type': 'application/json; charset=utf-8',
+                      'content-length': '240'
                     },
-                    "statusCode": 200
+                    'statusCode': 200
                   }
                 }
               }

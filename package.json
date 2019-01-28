@@ -1,10 +1,10 @@
 {
   "name": "@stringstack/express",
   "description": "StringStack/express is a component container for ExpressJS that allows you to easily include the ExpressJS framework in your StringStack application.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/BlueRival/stringstack-express.git"
+    "url": "git+ssh://git@github.com/StringStack/stringstack-express.git"
   },
   "scripts": {
     "test": "./node_modules/mocha/bin/mocha --bail"
@@ -15,7 +15,7 @@
     "express": "4.16.4"
   },
   "devDependencies": {
-    "@stringstack/core": "^0.2.0",
+    "@stringstack/core": "^0.3.1",
     "mocha": "^5.2.0",
     "request": "^2.88.0"
   },
@@ -30,9 +30,9 @@
   "license": "MIT",
   "private": false,
   "bugs": {
-    "url": "https://github.com/BlueRival/stringstack-express/issues"
+    "url": "https://github.com/StringStack/stringstack-express/issues"
   },
-  "homepage": "https://github.com/BlueRival/stringstack-express#readme",
+  "homepage": "https://github.com/StringStack/stringstack-express#readme",
   "main": "index.js",
   "directories": {
     "test": "test"

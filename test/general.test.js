@@ -642,7 +642,7 @@ describe( 'general', function () {
               {
                 'level': 'debug',
                 'path': 'stringstack-express/index',
-                'message': 'START [1] http get: localhost: /slow: [\'::ffff:127.0.0.1\']',
+                'message': 'START [1] http get: localhost: /slow: ["::ffff:127.0.0.1"]',
                 'meta': {
                   'requestId': 1,
                   'request': {
@@ -675,7 +675,7 @@ describe( 'general', function () {
               {
                 'level': 'debug',
                 'path': 'stringstack-express/index',
-                'message': 'START [2] http get: localhost: /echo: [\'::ffff:127.0.0.1\']',
+                'message': 'START [2] http get: localhost: /echo: ["::ffff:127.0.0.1"]',
                 'meta': {
                   'requestId': 2,
                   'request': {
@@ -698,7 +698,7 @@ describe( 'general', function () {
                     'headers': {
                       'x-powered-by': 'Express',
                       'content-type': 'application/json; charset=utf-8',
-                      'content-length': '214'
+                      'content-length': '227'
                     },
                     'statusCode': 200
                   }
@@ -707,7 +707,7 @@ describe( 'general', function () {
               {
                 'level': 'debug',
                 'path': 'stringstack-express/index',
-                'message': 'FINISH [2] http get: localhost: /echo: [\'::ffff:127.0.0.1\']',
+                'message': 'FINISH [2] http get: localhost: /echo: ["::ffff:127.0.0.1"]',
                 'meta': {
                   'requestId': 2,
                   'request': {
@@ -730,7 +730,7 @@ describe( 'general', function () {
                     'headers': {
                       'x-powered-by': 'Express',
                       'content-type': 'application/json; charset=utf-8',
-                      'content-length': '214'
+                      'content-length': '227'
                     },
                     'statusCode': 200
                   }
@@ -739,7 +739,7 @@ describe( 'general', function () {
               {
                 'level': 'debug',
                 'path': 'stringstack-express/index',
-                'message': 'FINISH [1] http get: localhost: /slow: [\'::ffff:127.0.0.1\']',
+                'message': 'FINISH [1] http get: localhost: /slow: ["::ffff:127.0.0.1"]',
                 'meta': {
                   'requestId': 1,
                   'request': {

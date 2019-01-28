@@ -16,7 +16,6 @@ class TestEchoComponent {
 
     let app = express.getApp();
 
-
     let handler = ( req, res ) => {
 
       let response = {};
@@ -34,6 +33,7 @@ class TestEchoComponent {
       response.cookies = req.cookies;
       response.remoteAddress = req.connection.remoteAddress;
       response.remotePort = req.connection.remotePort;
+      response.delay = null;
 
       res.json( response );
 

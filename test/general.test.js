@@ -4,7 +4,7 @@ const assert = require( 'assert' );
 const async = require( 'async' );
 const request = require( 'request' );
 const SetupTestConfigComponent = require( './lib/test.config' );
-const StringStackCore = require( '@stringstack/core' );
+const StringStack = require( 'stringstack' );
 
 let echoTestCheck = function ( params ) {
 
@@ -27,7 +27,7 @@ let echoTestCheck = function ( params ) {
       ( done ) => {
 
 
-        let url = 'http' + (secure ? 's' : '') + '://localhost:' + port + path;
+        let url = 'http' + ( secure ? 's' : '' ) + '://localhost:' + port + path;
 
         if ( slow && !headers.hasOwnProperty( 'delay' ) ) {
           headers.delay = 500;
@@ -102,9 +102,9 @@ let generateShutdownCheck = function ( keepAlive, secure, done ) {
 
       try {
 
-        let core = new StringStackCore();
+        let stringstack = new StringStack();
 
-        const App = core.createApp( {
+        const App = stringstack.createApp( {
           rootComponents: [
             './test/lib/test.config',
             './test/lib/test.echo',
@@ -290,8 +290,8 @@ let generateShutdownCheck = function ( keepAlive, secure, done ) {
 
         // check the result of the request that was made slightly after dinit fired
         if ( !checkThirdResult.err ||
-             typeof checkThirdResult.err.message !== 'string' ||
-             !checkThirdResult.err.message.match( /ECONNREFUSED/ ) ) {
+          typeof checkThirdResult.err.message !== 'string' ||
+          !checkThirdResult.err.message.match( /ECONNREFUSED/ ) ) {
           assert.fail( 'second check should fail since it is started after server dinit is called: ' + checkThirdResult.err.message );
         }
         assert( !checkThirdResult.response, 'Second response should be false' );
@@ -339,9 +339,9 @@ describe( 'general', function () {
               }
             };
 
-            let core = new StringStackCore();
+            let stringstack = new StringStack();
 
-            const App = core.createApp( {
+            const App = stringstack.createApp( {
               rootComponents: [
                 './test/lib/test.config',
                 './index'
@@ -394,9 +394,9 @@ describe( 'general', function () {
 
           try {
 
-            let core = new StringStackCore();
+            let stringstack = new StringStack();
 
-            const App = core.createApp( {
+            const App = stringstack.createApp( {
               rootComponents: [
                 './test/lib/test.config',
                 './test/lib/test.echo'
@@ -468,9 +468,9 @@ describe( 'general', function () {
 
           try {
 
-            let core = new StringStackCore();
+            let stringstack = new StringStack();
 
-            const App = core.createApp( {
+            const App = stringstack.createApp( {
               rootComponents: [
                 './test/lib/test.config',
                 './test/lib/test.echo'
@@ -523,7 +523,7 @@ describe( 'general', function () {
 
     } );
 
-    it( 'should log web requests', function ( done ) {
+    it( 'should log init and dinit for http and https', function ( done ) {
 
       this.timeout( 5000 );
 
@@ -535,7 +535,7 @@ describe( 'general', function () {
           port: 8080
         },
         https: {
-          enabled: false,
+          enabled: true,
           port: 8443
         }
       };
@@ -547,9 +547,9 @@ describe( 'general', function () {
 
           try {
 
-            let core = new StringStackCore();
+            let stringstack = new StringStack();
 
-            const App = core.createApp( {
+            const App = stringstack.createApp( {
               log: function ( level, path, message, meta ) {
 
                 logHistory.push( {
@@ -587,29 +587,162 @@ describe( 'general', function () {
         },
         ( done ) => {
 
-          async.parallel( [
-            echoTestCheck( {
-              port: SetupTestConfigComponent.defaultConfig.http.port,
-              secure: false,
-              slow: true
-            } ),
-            ( done ) => {
+          try {
+            app.dinit( done );
+          } catch ( e ) {
+            done( e );
+          }
 
-              let go = echoTestCheck( {
-                port: SetupTestConfigComponent.defaultConfig.http.port,
-                secure: false,
-                slow: false
+        },
+        ( done ) => {
+
+          try {
+
+            logHistory = logHistory
+              .filter( ( entry ) => {
+                return !!entry.path.match( /stringstack-express\/index$/ );
+              } )
+              .map( ( entry ) => {
+
+                entry.path = 'stringstack-express/index'; // component path
+
+                return entry;
+
               } );
 
-              // ensure second call always starts second, but starts before first one finishes
-              setTimeout( () => {
-                go( done );
-              }, 100 );
+            assert.deepStrictEqual( logHistory, [
+              {
+                'level': 'info',
+                'path': 'stringstack-express/index',
+                'message': 'opening http on port 8080',
+                'meta': undefined
+              },
+              {
+                'level': 'info',
+                'path': 'stringstack-express/index',
+                'message': 'opening https on port 8443',
+                'meta': undefined
+              },
+              {
+                'level': 'info',
+                'path': 'stringstack-express/index',
+                'message': 'http listening on port 8080',
+                'meta': undefined
+              },
+              {
+                'level': 'info',
+                'path': 'stringstack-express/index',
+                'message': 'https listening on port 8443',
+                'meta': undefined
+              },
+              {
+                'level': 'info',
+                'path': 'stringstack-express/index',
+                'message': 'stopping http',
+                'meta': undefined
+              },
+              {
+                'level': 'info',
+                'path': 'stringstack-express/index',
+                'message': 'stopping https',
+                'meta': undefined
+              },
+              {
+                'level': 'info',
+                'path': 'stringstack-express/index',
+                'message': 'http stopped',
+                'meta': undefined
+              },
+              {
+                'level': 'info',
+                'path': 'stringstack-express/index',
+                'message': 'https stopped',
+                'meta': undefined
+              }
+            ] );
 
-            },
-          ], ( err ) => {
+          } catch ( e ) {
+            return done( e );
+          }
+
+          done();
+
+        }
+      ], ( err ) => {
+
+        if ( err ) {
+          app.dinit( () => {
             done( err );
           } );
+        } else {
+          done();
+        }
+
+
+      } );
+
+    } );
+
+    it( 'should log init and dinit for http only', function ( done ) {
+
+      this.timeout( 5000 );
+
+      let app = null;
+
+      SetupTestConfigComponent.defaultConfig = {
+        http: {
+          enabled: true,
+          port: 8080
+        },
+        https: {
+          enabled: false,
+          port: 8443
+        }
+      };
+
+      let logHistory = [];
+
+      async.series( [
+        ( done ) => {
+
+          try {
+
+            let stringstack = new StringStack();
+
+            const App = stringstack.createApp( {
+              log: function ( level, path, message, meta ) {
+
+                logHistory.push( {
+                  level: level,
+                  path: path,
+                  message: message,
+                  meta: meta
+                } );
+
+              },
+              rootComponents: [
+                './test/lib/test.config',
+                './test/lib/test.echo',
+                './test/lib/test.slow'
+              ]
+            } );
+
+            app = new App( 'test' );
+
+            done();
+
+          } catch ( e ) {
+            return done( e );
+          }
+
+        },
+        ( done ) => {
+
+          try {
+            app.init( done );
+          } catch ( e ) {
+            done( e );
+          }
 
         },
         ( done ) => {
@@ -632,7 +765,6 @@ describe( 'general', function () {
               .map( ( entry ) => {
 
                 entry.path = 'stringstack-express/index'; // component path
-                delete entry.meta.response.headers.etag;
 
                 return entry;
 
@@ -640,134 +772,164 @@ describe( 'general', function () {
 
             assert.deepStrictEqual( logHistory, [
               {
-                'level': 'debug',
+                'level': 'info',
                 'path': 'stringstack-express/index',
-                'message': 'START [1] http get: localhost: /slow: ["::ffff:127.0.0.1"]',
-                'meta': {
-                  'requestId': 1,
-                  'request': {
-                    'protocol': 'http',
-                    'hostname': 'localhost',
-                    'path': '/slow',
-                    'method': 'get',
-                    'secure': false,
-                    'headers': {
-                      'delay': '500',
-                      'host': 'localhost:8080',
-                      'connection': 'close'
-                    },
-                    'ip': '::ffff:127.0.0.1',
-                    'ips': [],
-                    'query': {},
-                    'cookies': null,
-                    'body': null
-                  },
-                  'response': {
-                    'headers': {
-                      'x-powered-by': 'Express',
-                      'content-type': 'application/json; charset=utf-8',
-                      'content-length': '240'
-                    },
-                    'statusCode': 200
-                  }
-                }
+                'message': 'opening http on port 8080',
+                'meta': undefined
               },
               {
-                'level': 'debug',
+                'level': 'info',
                 'path': 'stringstack-express/index',
-                'message': 'START [2] http get: localhost: /echo: ["::ffff:127.0.0.1"]',
-                'meta': {
-                  'requestId': 2,
-                  'request': {
-                    'protocol': 'http',
-                    'hostname': 'localhost',
-                    'path': '/echo',
-                    'method': 'get',
-                    'secure': false,
-                    'headers': {
-                      'host': 'localhost:8080',
-                      'connection': 'close'
-                    },
-                    'ip': '::ffff:127.0.0.1',
-                    'ips': [],
-                    'query': {},
-                    'cookies': null,
-                    'body': null
-                  },
-                  'response': {
-                    'headers': {
-                      'x-powered-by': 'Express',
-                      'content-type': 'application/json; charset=utf-8',
-                      'content-length': '227'
-                    },
-                    'statusCode': 200
-                  }
-                }
+                'message': 'http listening on port 8080',
+                'meta': undefined
               },
               {
-                'level': 'debug',
+                'level': 'info',
                 'path': 'stringstack-express/index',
-                'message': 'FINISH [2] http get: localhost: /echo: ["::ffff:127.0.0.1"]',
-                'meta': {
-                  'requestId': 2,
-                  'request': {
-                    'protocol': 'http',
-                    'hostname': 'localhost',
-                    'path': '/echo',
-                    'method': 'get',
-                    'secure': false,
-                    'headers': {
-                      'host': 'localhost:8080',
-                      'connection': 'close'
-                    },
-                    'ip': '::ffff:127.0.0.1',
-                    'ips': [],
-                    'query': {},
-                    'cookies': null,
-                    'body': null
-                  },
-                  'response': {
-                    'headers': {
-                      'x-powered-by': 'Express',
-                      'content-type': 'application/json; charset=utf-8',
-                      'content-length': '227'
-                    },
-                    'statusCode': 200
-                  }
-                }
+                'message': 'stopping http',
+                'meta': undefined
               },
               {
-                'level': 'debug',
+                'level': 'info',
                 'path': 'stringstack-express/index',
-                'message': 'FINISH [1] http get: localhost: /slow: ["::ffff:127.0.0.1"]',
-                'meta': {
-                  'requestId': 1,
-                  'request': {
-                    'protocol': 'http',
-                    'hostname': 'localhost',
-                    'path': '/slow',
-                    'method': 'get',
-                    'secure': false,
-                    'headers': {
-                      'delay': '500',
-                      'host': 'localhost:8080',
-                      'connection': 'close'
-                    },
-                    'ip': '::ffff:127.0.0.1',
-                    'ips': [],
-                    'query': {},
-                    'cookies': null,
-                    'body': null
-                  },
-                  'response': {
-                    'headers': {
-                      'x-powered-by': 'Express',
-                      'content-type': 'application/json; charset=utf-8',
-                      'content-length': '240'
-                    },
-                    'statusCode': 200
-                  }
-                }
+                'message': 'http stopped',
+                'meta': undefined
+              }
+            ] );
+
+          } catch ( e ) {
+            return done( e );
+          }
+
+          done();
+
+        }
+      ], ( err ) => {
+
+        if ( err ) {
+          app.dinit( () => {
+            done( err );
+          } );
+        } else {
+          done();
+        }
+
+
+      } );
+
+    } );
+
+    it( 'should log init and dinit for https only', function ( done ) {
+
+      this.timeout( 5000 );
+
+      let app = null;
+
+      SetupTestConfigComponent.defaultConfig = {
+        http: {
+          enabled: false,
+          port: 8080
+        },
+        https: {
+          enabled: true,
+          port: 8443
+        }
+      };
+
+      let logHistory = [];
+
+      async.series( [
+        ( done ) => {
+
+          try {
+
+            let stringstack = new StringStack();
+
+            const App = stringstack.createApp( {
+              log: function ( level, path, message, meta ) {
+
+                logHistory.push( {
+                  level: level,
+                  path: path,
+                  message: message,
+                  meta: meta
+                } );
+
+              },
+              rootComponents: [
+                './test/lib/test.config',
+                './test/lib/test.echo',
+                './test/lib/test.slow'
+              ]
+            } );
+
+            app = new App( 'test' );
+
+            done();
+
+          } catch ( e ) {
+            return done( e );
+          }
+
+        },
+        ( done ) => {
+
+          try {
+            app.init( done );
+          } catch ( e ) {
+            done( e );
+          }
+
+        },
+        ( done ) => {
+
+          try {
+            app.dinit( done );
+          } catch ( e ) {
+            done( e );
+          }
+
+        },
+        ( done ) => {
+
+          try {
+
+            logHistory = logHistory
+              .filter( ( entry ) => {
+                return !!entry.path.match( /stringstack-express\/index$/ );
+              } )
+              .map( ( entry ) => {
+
+                entry.path = 'stringstack-express/index'; // component path
+
+                return entry;
+
+              } );
+
+            assert.deepStrictEqual( logHistory, [
+              {
+                'level': 'info',
+                'path': 'stringstack-express/index',
+                'message': 'opening https on port 8443',
+                'meta': undefined
+              },
+              {
+                'level': 'info',
+                'path': 'stringstack-express/index',
+                'message': 'https listening on port 8443',
+                'meta': undefined
+              },
+              {
+                'level': 'info',
+                'path': 'stringstack-express/index',
+                'message': 'stopping https',
+                'meta': undefined
+              },
+              {
+                'level': 'info',
+                'path': 'stringstack-express/index',
+                'message': 'https stopped',
+                'meta': undefined
               }
             ] );
 

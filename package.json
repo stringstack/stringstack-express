@@ -1,23 +1,24 @@
 {
   "name": "@stringstack/express",
   "description": "StringStack/express is a component container for ExpressJS that allows you to easily include the ExpressJS framework in your StringStack application.",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/StringStack/stringstack-express.git"
   },
   "scripts": {
-    "test": "./node_modules/mocha/bin/mocha --bail"
+    "test": "./node_modules/mocha/bin/mocha --exit --bail test/general.test.js"
   },
   "dependencies": {
-    "async": "2.6.1",
-    "doublescore": "0.3.7",
-    "express": "4.16.4"
+    "async": "3.1.0",
+    "doublescore": "1.0.0",
+    "express": "4.17.1",
+    "stoppable": "1.1.0"
   },
   "devDependencies": {
-    "@stringstack/core": "^0.3.1",
-    "mocha": "^5.2.0",
-    "request": "^2.88.0"
+    "stringstack": "0.4.4",
+    "mocha": "6.2.2",
+    "request": "2.88.0"
   },
   "keywords": [
     "app",
@@ -25,7 +26,7 @@
     "express"
   ],
   "engines": {
-    "node": ">=6.0.0"
+    "node": ">=8.0.0"
   },
   "license": "MIT",
   "private": false,
@@ -37,5 +38,12 @@
   "directories": {
     "test": "test"
   },
-  "author": "Anthony Hildoer <anthony@bluerival.com>"
+  "author": "Anthony Hildoer <anthony@bluerival.com>",
+  "files": [
+    "index.js",
+    "LICENSE",
+    "package-lock.json",
+    "package.json",
+    "README.md"
+  ]
 }

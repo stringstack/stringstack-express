@@ -10,7 +10,7 @@
     "test": "./node_modules/mocha/bin/mocha --exit --bail test/general.test.js"
   },
   "dependencies": {
-    "async": "3.1.0",
+    "async": "3.2.2",
     "doublescore": "1.0.0",
     "express": "4.17.1",
     "stoppable": "1.1.0"
